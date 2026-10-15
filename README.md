@@ -24,7 +24,7 @@ Every capsule keeps two things strictly apart:
 
 ---
 
-## The problem
+## The problem statement
 
 Open-source projects depend on packages that go stale, get deprecated, break on new Python versions, or quietly drift between manifests. Maintainers usually find out only when something breaks. An AI can suggest a replacement, but a suggestion on its own isn't trustworthy. A migration needs to be **tested** against the project's real code and tests before anyone relies on it.
 
