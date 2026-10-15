@@ -13,7 +13,7 @@ def main(argv=None):
     a.add_argument("--out", default="capsule", help="output directory (default: capsule)")
     a.add_argument("--python", default="3.12", help="Python version or interpreter for the test envs (default 3.12)")
     a.add_argument("--only", help="comma-separated dependency names to plan exits for")
-    a.add_argument("--max-deps", type=int, default=8, help="max dependencies to migrate (default 8)")
+    a.add_argument("--max-deps", type=int, default=20, help="max dependencies to migrate (default 20)")
     a.add_argument("--min-score", type=int, default=2, help="minimum risk score to plan an exit (default 2)")
     a.add_argument("--attempts", type=int, default=2, help="verify/repair rounds per dependency (default 2)")
     a.add_argument("--model", help="Gemma model id (default gemma-4-26b-a4b-it, or $GEMMA_MODEL)")
