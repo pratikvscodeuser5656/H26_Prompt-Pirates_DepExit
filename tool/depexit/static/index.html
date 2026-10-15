@@ -233,7 +233,7 @@ ol.steps{margin:0;padding-left:20px} ol.steps li{margin:6px 0;font-size:14px}
 .ind .sev{font-family:var(--mono);font-size:11px;padding-top:3px;letter-spacing:-1px}
 .ind b{font-size:13.5px} .ind p{margin:2px 0 0;font-size:13px;color:var(--graphite)} .ind code{color:var(--graphite);font-size:11.5px;word-break:break-word}
 .usage td{font-size:12.5px;padding:7px 8px}
-.attempt{border:1px solid var(--rule);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.attempt{border:1px solid var(--rule);border-radius:10px;padding:14px 16px;margin-bottom:12px;overflow-x:auto}
 .attempt .ah{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:600;font-size:14px}
 .beforeafter{display:flex;align-items:baseline;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.02em;white-space:nowrap}
 .beforeafter .a{color:var(--mist);text-decoration:line-through;text-decoration-thickness:2px;font-weight:600}
@@ -269,8 +269,28 @@ pre.out{background:var(--wash);border-radius:8px;padding:12px 14px;font:12.5px/1
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:all .3s var(--ease);z-index:50;max-width:90vw}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
+/* checks */
+.oc{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.oc i{width:10px;height:10px;border:1.5px solid var(--ink);border-radius:50%}
+.oc.passed i{background:var(--ink)} .oc.passed{font-weight:500}
+.oc.failed i,.oc.error i{border-radius:2px;background:repeating-linear-gradient(-45deg,var(--ink) 0 2px,#fff 2px 4px)}
+.oc.skipped i,.oc.missing i{border-style:dashed} .oc.missing{color:var(--mist);font-weight:400}
+.oc.changed{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.totals{display:grid;grid-template-columns:repeat(4,1fr);border-top:1.5px solid var(--ink);margin-bottom:8px}
+.totals div{padding:14px 16px 14px 0;border-right:1px solid var(--rule)} .totals div+div{padding-left:16px}
+.totals div:last-child{border-right:0}
+.totals b{display:block;font-size:26px;font-weight:800;letter-spacing:-.03em}
+.totals span{font-size:12.5px;color:var(--graphite)}
+.routes{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.route h4{margin:0 0 4px;font-size:15px} .route .meta{font-size:12.5px;color:var(--graphite);margin-bottom:10px}
+.steps-t td{font-size:12.5px;padding:7px 8px} .steps-t td.code{word-break:break-all}
+td.msg{font-size:12px;color:var(--graphite);font-family:var(--mono);max-width:420px;white-space:pre-wrap;word-break:break-word}
+details.more{margin-top:10px} details.more summary{cursor:pointer;font-size:13px;font-weight:600}
+details.more pre{background:var(--wash);border-radius:8px;padding:10px 12px;font:11.5px/1.5 var(--mono);white-space:pre-wrap;max-height:220px;overflow:auto;margin:8px 0 0}
+.pkgs{columns:3;column-gap:28px;list-style:none;padding:0;margin:0}
+.pkgs li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;break-inside:avoid}
 @media (max-width:1100px){.cols,.capwrap{grid-template-columns:1fr}.caplist{position:static;display:flex;flex-wrap:wrap;gap:6px}.caplist button{width:auto}.proof{grid-template-columns:1fr}}
-@media (max-width:860px){.shell{grid-template-columns:1fr}.rail{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule)}.main{padding:24px 18px}.flow{grid-template-columns:1fr 1fr}.minis{grid-template-columns:1fr}.minis>div{border-right:0;padding-left:0 !important}.exits li{grid-template-columns:1fr}.top .tagline,.legend{display:none}.files{columns:1}.track,.tracklabels{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:860px){.shell{grid-template-columns:1fr}.rail{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule)}.main{padding:24px 18px}.flow{grid-template-columns:1fr 1fr}.minis{grid-template-columns:1fr}.minis>div{border-right:0;padding-left:0 !important}.exits li{grid-template-columns:1fr}.top .tagline,.legend{display:none}.files{columns:1}.routes{grid-template-columns:1fr}.totals{grid-template-columns:1fr 1fr}.pkgs{columns:1}.track,.tracklabels{grid-template-columns:repeat(3,1fr)}}
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
 </head>
@@ -593,6 +613,7 @@ function showResults(){
     : `<div class="big"><span class="to">${n(before)}<sub>/${before?.t??""}</sub></span></div>
        <p class="cap">Tests passing on the original project. ${DATA.run.ai_model ? "No exit was verified in this run." : "Gemma was off, so this run only measured the evidence."}</p>`;
   const tabs = [["overview","Overview"],["risk","Risk map",deps.length],["capsules","Exit capsules",Object.keys(DATA.capsule_docs||{}).length]];
+  if(DATA.checks) tabs.push(["checks","Checks", DATA.checks.totals.environments]);
   if(DATA.forecast) tabs.push(["forecast","Python forecast"]);
   if(DATA.organizer) tabs.push(["organizer","Organizer"]);
   tabs.push(["branch","Git branch"],["files","Files"]);
@@ -614,7 +635,7 @@ function showResults(){
 function go(t, dep){ TAB = t; if(dep) DEP = dep; $$(".tab").forEach(x => x.setAttribute("aria-selected", String(x.dataset.t===t))); renderView(); }
 function renderView(){
   const v = $("#view"); v.classList.remove("view"); void v.offsetWidth; v.classList.add("view");
-  ({overview:vOverview, risk:vRisk, capsules:vCapsules, forecast:vForecast, organizer:vOrganizer, branch:vBranch, files:vFiles}[TAB] || vOverview)();
+  ({overview:vOverview, risk:vRisk, capsules:vCapsules, checks:vChecks, forecast:vForecast, organizer:vOrganizer, branch:vBranch, files:vFiles}[TAB] || vOverview)();
   bindCopies();
 }
 
@@ -676,6 +697,25 @@ function vRisk(){
   $$("tr.go").forEach(r => r.onclick = () => go("capsules", r.dataset.dep));
 }
 
+function testDetail(a){
+  const runs = a.test_runs || {}, base = DATA.checks?.baseline || {};
+  const routes = Object.keys(runs);
+  if(!routes.length) return "";
+  return `<details class="more"><summary>Every test, before and after</summary>
+    ${routes.map(route => {
+      const before = base[route]?.tests || {}, after = runs[route]?.tests || {};
+      const ids = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+      const inst = a.installs?.[route];
+      return `<div class="small muted" style="margin:12px 0 6px">Installed from ${esc(routeName(route))}${inst ? `: install ${inst.ok ? "succeeded" : "failed"} in ${esc(secs((inst.steps||[]).reduce((x,s)=>x+(s.seconds||0),0)))}` : ""}</div>
+      <table><thead><tr><th>Test</th><th>Before</th><th>After</th><th>Time after</th></tr></thead><tbody>
+      ${ids.map(id => { const b = before[id]?.outcome, f = after[id]?.outcome, ch = b !== f;
+        return `<tr><td class="code small" title="${esc(id)}">${esc(testName(id))}</td><td>${oc(b)}</td><td>${oc(f, ch)}</td><td class="num small">${secs(after[id]?.seconds)}</td></tr>
+        ${ch && after[id]?.message ? `<tr><td colspan="4" class="msg">${esc(after[id].message.slice(0,500))}</td></tr>` : ""}`; }).join("")}
+      </tbody></table>
+      ${inst ? stepsTable(inst.steps) : ""}`; }).join("")}
+    <p class="small muted" style="margin-top:8px">Underlined results changed after the migration.</p></details>`;
+}
+
 function vCapsules(){
   const names = Object.keys(DATA.capsule_docs||{});
   if(!names.length){ $("#view").innerHTML = `<p class="muted">No package met the risk threshold, so no capsule was written.</p>`; return; }
@@ -696,6 +736,7 @@ function vCapsules(){
         <span class="beforeafter"><span class="a">${esc(counts(x.tests_before))}</span><span>${esc(counts(x.tests_after))}</span></span></div>
         ${x.fixed.length ? `<div class="small">Fixed: ${x.fixed.map(t=>`<code>${esc(t.split("::").pop())}</code>`).join(", ")}</div>` : ""}
         ${x.regressed.length ? `<div class="small"><b>Broke:</b> ${x.regressed.map(t=>`<code>${esc(t.split("::").pop())}</code>`).join(", ")}</div>` : ""}`).join("")}
+      ${testDetail(a)}
       ${a.apply.errors.length ? `<div class="small" style="margin-top:8px"><b>Not applied:</b> ${a.apply.errors.map(esc).join("; ")}</div>` : ""}
       ${a.comparison.residual_references.length ? `<div class="small" style="margin-top:8px"><b>Still referenced:</b> ${a.comparison.residual_references.map(esc).join("; ")}</div>` : ""}
     </div>`; }).join("") || `<p class="muted small">No change was tested${ai.enabled ? "" : " (Gemma was off)"}.</p>`;
@@ -745,6 +786,59 @@ function vCapsules(){
       <details class="adv"><summary>Limits of this check</summary>${list(c.limitations)}</details>
     </div></div>`;
   $$(".caplist button").forEach(b => b.onclick = () => { DEP = b.dataset.n; vCapsules(); bindCopies(); window.scrollTo({top: $("#view").offsetTop - 120, behavior: "smooth"}); });
+}
+
+const OUT = {passed:"Passed", failed:"Failed", error:"Error", skipped:"Skipped"};
+function oc(o, changed){ const k = o || "missing"; return `<span class="oc ${k} ${changed?'changed':''}"><i></i>${esc(OUT[k] || "Not run")}</span>`; }
+const secs = v => (v === null || v === undefined) ? "–" : (v < 1 ? `${Math.round(v*1000)} ms` : v < 90 ? `${(+v).toFixed(1)} s` : `${Math.floor(v/60)} min ${Math.round(v%60)} s`);
+const routeName = r => r === "requirements" ? "requirements files" : r === "pyproject" ? "pyproject.toml" : (r||"");
+const testName = t => t.split("::").pop();
+const tidy = c => String(c||"").replace(/\S*?[\\/](\.depexit-work[\\/]|uv(\.exe)?\s)/g, m => m.endsWith(" ") ? "uv " : "").replace(/[A-Za-z]:\\\S*?\\\.depexit-work\\/g,"");
+function stepsTable(steps){
+  if(!steps?.length) return `<p class="muted small">No install steps recorded.</p>`;
+  return `<table class="steps-t"><tbody>${steps.map(st => `<tr><td>${st.returncode===0?oc("passed"):oc("failed")}</td><td class="code">${esc(tidy(st.cmd))}</td><td class="num">${secs(st.seconds)}</td></tr>`).join("")}</tbody></table>
+    <details class="more"><summary>Install output</summary><pre>${esc(steps.map(st => "$ " + st.cmd + "\n" + (st.output_tail||"")).join("\n\n"))}</pre></details>`;
+}
+function vChecks(){
+  const C = DATA.checks, T = C.totals;
+  const routes = Object.entries(C.baseline);
+  $("#view").innerHTML = `
+    <p class="sub">Every environment DepExit built and every test it ran, exactly as measured. Nothing on this page comes from the AI.</p>
+    <div class="totals">
+      <div><b>${T.environments}</b><span>isolated environments built</span></div>
+      <div><b>${T.installs_ok}/${T.environments}</b><span>installed successfully</span></div>
+      <div><b>${T.test_cases}</b><span>test cases executed</span></div>
+      <div><b>${esc(secs(T.seconds))}</b><span>spent installing and testing</span></div>
+    </div>
+
+    <h3 class="sec">Baseline: the original project</h3>
+    <p class="sub">The repository exactly as published, installed two ways and tested. Every exit is compared against these results.</p>
+    <div class="routes">${routes.map(([route, r]) => {
+      const tests = Object.entries(r.tests).sort((a,b) => (a[1].outcome==="passed") - (b[1].outcome==="passed") || a[0].localeCompare(b[0]));
+      return `<section class="route">
+        <h4>Installed from ${esc(routeName(route))}</h4>
+        <div class="meta">Python ${esc(r.python||"?")}. Install ${r.install_ok ? "succeeded" : "<b>failed</b>"} in ${esc(secs(r.install_seconds))}; tests took ${esc(secs(r.test_seconds))}.</div>
+        ${stepsTable(r.install_steps)}
+        <h5 style="font-size:13px;margin:16px 0 6px">${esc(counts(r.counts))}</h5>
+        <table><thead><tr><th>Test</th><th>Result</th><th>Time</th></tr></thead><tbody>
+          ${tests.map(([id,t]) => `<tr><td class="code small" title="${esc(id)}">${esc(testName(id))}</td><td>${oc(t.outcome)}</td><td class="num small">${secs(t.seconds)}</td></tr>
+            ${t.message ? `<tr><td colspan="3" class="msg">${esc(t.message.slice(0,600))}</td></tr>` : ""}`).join("")}
+        </tbody></table>
+        ${r.warnings.length ? `<details class="more"><summary>${r.warnings.length} warning${r.warnings.length>1?"s":""} during the tests</summary><pre>${esc(r.warnings.join("\n"))}</pre></details>` : ""}
+        ${r.test_command ? `<details class="more"><summary>Exact test command</summary><pre>${esc(r.test_command)}</pre></details>` : ""}
+      </section>`; }).join("")}
+    </div>
+
+    <h3 class="sec">Every check, in order</h3>
+    <table><thead><tr><th>Stage</th><th>What was tested</th><th>Installed from</th><th>Install</th><th>Tests</th><th>Time</th><th>Result</th></tr></thead><tbody>
+      ${C.timeline.map(t => `<tr><td>${esc(t.stage)}</td><td class="code small">${esc(t.subject)}</td><td class="small">${esc(routeName(t.route))}</td>
+        <td>${t.install_ok ? oc("passed") : oc("failed")}</td><td class="small">${esc(counts(t.counts))}</td>
+        <td class="num small">${t.install_seconds===null ? "–" : esc(secs((t.install_seconds||0)+(t.test_seconds||0)))}</td>
+        <td>${t.verdict ? verdict(t.verdict) : ""}</td></tr>`).join("")}
+    </tbody></table>
+
+    <h3 class="sec">Package versions installed in the baseline</h3>
+    <ul class="pkgs">${Object.entries(C.installed_versions).map(([n,v]) => `<li><span class="code">${esc(n)}</span><span class="code muted">${esc(v)}</span></li>`).join("")}</ul>`;
 }
 
 function vForecast(){

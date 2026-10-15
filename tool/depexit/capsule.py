@@ -69,6 +69,7 @@ def write_all(out_dir, run_info, baseline, deps, selected, combined, ai_calls, o
                                                   ("actions", "log", "ai_annotations", "ai_error", "comparison", "verdict", "applies_on_top_of")}
         | {"patch": "organizer.patch", "diff": organized.get("diff")},
         "forecast": forecast,
+        "checks": _checks(baseline, deps, selected, combined, organized, forecast),
         "capsules": ["dependencies/%s.json" % c["dependency"]["name"] for c in capsules],
     }
     (out_dir / "capsule.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8", newline="\n")
@@ -86,6 +87,75 @@ def _route_summary(b):
             "failing": sorted(t for t, v in ((b.get("tests") or {}).get("tests") or {}).items()
                               if v["outcome"] in ("failed", "error")),
             "warnings": (b.get("tests") or {}).get("warnings", [])}
+
+
+def _run_detail(r):
+    """Everything observed for one install route: steps, timings, every test case, warnings."""
+    tests = r.get("tests") or {}
+    install = r.get("install") or {}
+    return {
+        "install_ok": install.get("ok"),
+        "install_error": install.get("error"),
+        "install_steps": [{"cmd": s["cmd"], "returncode": s["returncode"], "seconds": s["seconds"],
+                           "output_tail": s.get("output_tail", "")} for s in install.get("steps", [])],
+        "install_seconds": round(sum(s.get("seconds") or 0 for s in install.get("steps", [])), 1),
+        "python": (r.get("smoke") or {}).get("python"),
+        "test_command": tests.get("command"),
+        "test_seconds": tests.get("seconds"),
+        "counts": tests.get("counts"),
+        "tests": tests.get("tests") or {},
+        "warnings": tests.get("warnings") or [],
+    }
+
+
+def _short(r):
+    install = r.get("install") or {}
+    tests = r.get("tests") or {}
+    return {"install_ok": install.get("ok"),
+            "install_seconds": round(sum(s.get("seconds") or 0 for s in install.get("steps", [])), 1),
+            "test_seconds": tests.get("seconds"), "counts": tests.get("counts")}
+
+
+def _checks(baseline, deps, selected, combined, organized, forecast):
+    """A flat, observed log of every environment DepExit built and every test run it executed."""
+    timeline = []
+    for route, r in baseline.items():
+        timeline.append({"stage": "Baseline", "subject": "original project", "route": route, **_short(r)})
+    for d in selected:
+        for a in d.get("attempts") or []:
+            for route, r in (a.get("verification") or {}).items():
+                timeline.append({"stage": "Exit attempt %d" % a["n"], "subject": d["name"], "route": route,
+                                 "verdict": a.get("verdict"), **_short(r)})
+    if combined:
+        for route, r in (combined.get("verification") or {}).items():
+            timeline.append({"stage": "Combined", "subject": ", ".join(combined["dependencies"]), "route": route,
+                             "verdict": combined.get("verdict"), **_short(r)})
+    if organized:
+        for route, r in (organized.get("verification") or {}).items():
+            timeline.append({"stage": "Organizer", "subject": "dependency files", "route": route,
+                             "verdict": organized.get("verdict"), **_short(r)})
+    for v, x in ((forecast or {}).get("versions") or {}).items():
+        timeline.append({"stage": "Forecast", "subject": "Python " + str(x.get("python") or v),
+                         "route": (forecast or {}).get("route"), "install_ok": x.get("install_ok"),
+                         "install_seconds": None, "test_seconds": None, "counts": x.get("tests")})
+    names = {d["name"] for d in deps}
+    versions = {}
+    for r in baseline.values():
+        for dist, info in ((r.get("smoke") or {}).get("dists") or {}).items():
+            if dist in names:
+                versions[dist] = info.get("version")
+    total_cases = sum(sum((t.get("counts") or {}).values()) for t in timeline)
+    return {
+        "baseline": {route: _run_detail(r) for route, r in baseline.items()},
+        "installed_versions": dict(sorted(versions.items())),
+        "timeline": timeline,
+        "totals": {
+            "environments": len(timeline),
+            "installs_ok": sum(1 for t in timeline if t.get("install_ok")),
+            "test_cases": total_cases,
+            "seconds": round(sum((t.get("install_seconds") or 0) + (t.get("test_seconds") or 0) for t in timeline), 1),
+        },
+    }
 
 
 def _combined_summary(c):

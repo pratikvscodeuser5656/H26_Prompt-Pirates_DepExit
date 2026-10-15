@@ -183,7 +183,11 @@ def run_tests(env_dir, repo, timeout=900):
                         if detail:
                             message = (message + "\n" + normalise_path_text(tail(detail, 12))).strip()[:1500]
                         break
-                tests[tid] = {"outcome": outcome, "message": message}
+                try:
+                    secs = round(float(case.get("time") or 0), 3)
+                except ValueError:
+                    secs = None
+                tests[tid] = {"outcome": outcome, "message": message, "seconds": secs}
         except ET.ParseError:
             pass
     counts = {}

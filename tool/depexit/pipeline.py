@@ -239,7 +239,7 @@ def run_organizer(base_tree, base_results, work, python, routes, pkg_map, instal
     v = verdict(comparison, "upgrade", {"errors": []})
     console.print("  organizer verdict: [bold]%s[/bold]" % v)
     return {"actions": the_plan["actions"], "log": log, "ai_annotations": notes, "ai_error": note_error,
-            "comparison": comparison, "verdict": v, "diff": migrate.diff_trees(base_tree, tree),
+            "comparison": comparison, "verdict": v, "verification": cand, "diff": migrate.diff_trees(base_tree, tree),
             "applies_on_top_of": "verified migration" if Path(base_tree) != Path(work) / "baseline-src" else "original repository"}
 
 
