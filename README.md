@@ -173,3 +173,11 @@ Choose and add an appropriate open-source license before distributing the projec
 
 **Built for Track 2: Maintenance Agent Skill**  
 *Helping developers maintain repositories with AI-assisted planning and verified changes.*
+
+## Team Prompt Pirates
+
+- **Pratik Thakur**: engine and Gemma 4 integration (gemma.py, pipeline.py)
+- **Vedanta Sahoo**: verification and migration (env.py, migrate.py)
+- **Nishad Varkute**: web dashboard and demo (web.py, static/)
+- **Sandip Sawant**: Python forecast, Auto-Organizer, documentation
+
