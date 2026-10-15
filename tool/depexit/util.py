@@ -73,3 +73,15 @@ def ensure_git_on_path():
             os.environ["PATH"] = str(folder) + os.pathsep + os.environ.get("PATH", "")
             return True
     return False
+
+
+def force_rmtree(path):
+    """Delete a folder even on Windows, where git marks its object files read-only."""
+    import shutil
+    import stat
+
+    def unlock(func, p, _exc):
+        os.chmod(p, stat.S_IWRITE)
+        func(p)
+
+    shutil.rmtree(path, onerror=unlock)

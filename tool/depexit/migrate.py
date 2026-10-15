@@ -7,13 +7,13 @@ from pathlib import Path
 from packaging.requirements import InvalidRequirement, Requirement
 
 from .manifest import parse_req_line, requirement_files
-from .util import canon, skipped
+from .util import force_rmtree, canon, skipped
 
 
 def copy_tree(src, dst):
     dst = Path(dst)
     if dst.exists():
-        shutil.rmtree(dst)
+        force_rmtree(dst)
     def ignore(directory, names):
         if ".depexit-ignore" in names:  # e.g. DepExit's own folder inside a forked target repo
             return list(names)

@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__, capsule, env, manifest, migrate, organizer, pypi, risk, usage
-from .util import canon, run
+from .util import force_rmtree, canon, run
 
 console = Console()
 MAX_FILE_CHARS = 7000
@@ -23,7 +23,7 @@ def prepare_target(target, work):
     if target.startswith(("http://", "https://", "git@")):
         dest = work / "target"
         if dest.exists():
-            shutil.rmtree(dest)
+            force_rmtree(dest)
         res = run(["git", "clone", "-c", "core.autocrlf=false", "--depth", "1", target, str(dest)], timeout=300)
         if res["returncode"] == -2:
             raise SystemExit("Git is not installed. Install it from https://git-scm.com/download/win and start DepExit again.")

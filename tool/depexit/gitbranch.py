@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from .util import run
+from .util import force_rmtree, run
 
 PATCHES = {"migration": "combined-migration.patch", "organizer": "organizer.patch"}
 
@@ -59,7 +59,7 @@ def create_branch(repo, capsule_dir, which=("migration", "organizer"), branch=No
     # ship the evidence with the change
     dest = repo / "dependency-exit-capsules"
     if dest.exists():
-        shutil.rmtree(dest)
+        force_rmtree(dest)
     shutil.copytree(capsule_dir, dest, ignore=shutil.ignore_patterns("*.pyc"))
     git("add", "dependency-exit-capsules")
     git("commit", "-m", "docs: add DepExit Dependency Exit Capsules (evidence for this branch)")

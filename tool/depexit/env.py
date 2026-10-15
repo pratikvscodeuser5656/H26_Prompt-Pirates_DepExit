@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from .manifest import requirement_files
-from .util import canon, run, tail, venv_python
+from .util import force_rmtree, canon, run, tail, venv_python
 
 SMOKE_SCRIPT = r'''
 import importlib, importlib.metadata as md, json, re, sys, warnings
@@ -99,7 +99,7 @@ def create(env_dir, python_spec, repo, route):
     """Create a venv and install the project the given way. Returns an evidence dict."""
     env_dir = Path(env_dir)
     if env_dir.exists():
-        shutil.rmtree(env_dir)
+        force_rmtree(env_dir)
     steps = []
     if use_uv():
         steps.append(run([uv_bin(), "venv", "--python", python_spec, str(env_dir)], timeout=600))
