@@ -1,6 +1,7 @@
 # DepExit: AI-planned, execution-verified dependency exits
 
 **Hacktoberfest Hack Day Mumbai × ISTE KJSSE 2026 · Track 1: Gemma 4, Dependency Resilience**
+**Team:** Pratik Thakur, Vedanta Sahoo, Nishad Varkute, Sandip Sawant
 
 DepExit is an open-source CLI. You point it at a Python repository and it:
 
