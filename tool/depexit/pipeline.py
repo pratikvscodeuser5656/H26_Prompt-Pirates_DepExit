@@ -9,7 +9,7 @@ from packaging.requirements import Requirement
 from rich.console import Console
 from rich.table import Table
 
-from . import __version__, capsule, env, manifest, migrate, organizer, pypi, risk, usage
+from . import __version__, capsule, env, live, manifest, migrate, organizer, pypi, risk, usage
 from .util import force_rmtree, canon, run
 
 console = Console()
@@ -41,18 +41,50 @@ def prepare_target(target, work):
 
 
 # ------------------------------------------------------------------ verification
+ROUTE_NAME = {"requirements": "requirements files", "pyproject": "pyproject.toml"}
+
+
 def verify_tree(tree, label, work, python, routes, modules=(), dists=()):
     results = {}
     for route in routes:
         env_dir = Path(work) / "envs" / ("%s-%s" % (label, route))
         console.print("    [dim]installing ({}) ...[/dim]".format(route))
+        live.set(current_env={"label": label, "route": route, "python": python, "phase": "installing", "since": __import__("time").time()},
+                 detail="Installing %s from %s on Python %s" % (label, ROUTE_NAME.get(route, route), python))
+        live.count(environments=1)
         setup = env.create(env_dir, python, tree, route)
+        secs = sum(st.get("seconds") or 0 for st in setup.get("steps", []))
+        live.count(seconds=secs)
+        if setup["ok"]:
+            live.count(installs_ok=1)
+            live.event("install", "Installed %s (%s) in %.1f s" % (label, ROUTE_NAME.get(route, route), secs))
+        else:
+            live.count(installs_failed=1)
+            tail = setup["steps"][-2]["output_tail"] if len(setup.get("steps", [])) > 1 else setup.get("error", "")
+            live.event("error", "Install failed: %s (%s)" % (label, ROUTE_NAME.get(route, route)), tail)
+            live.issue("error", label, "Install failed (%s)" % ROUTE_NAME.get(route, route), tail)
         result = {"install": setup}
         if setup["steps"] and Path(env_dir).exists():
             result["smoke"] = env.smoke(env_dir, modules, dists)
+            for mod, res in (result["smoke"].get("imports") or {}).items():
+                if not res.get("ok"):
+                    live.event("error", "import %s fails" % mod, res.get("error"))
             console.print("    [dim]running tests ({}) ...[/dim]".format(route))
+            live.set(current_env={"label": label, "route": route, "python": python, "phase": "testing", "since": __import__("time").time()},
+                     detail="Running the test suite for %s (%s)" % (label, ROUTE_NAME.get(route, route)))
             result["tests"] = env.run_tests(env_dir, tree)
+            t = result["tests"]
+            c = t.get("counts") or {}
+            live.count(test_cases=sum(c.values()), passed=c.get("passed", 0),
+                       failed=c.get("failed", 0) + c.get("error", 0) + c.get("collection_error", 0),
+                       warnings=len(t.get("warnings") or []), seconds=t.get("seconds") or 0)
+            failed = [k for k, v in (t.get("tests") or {}).items() if v["outcome"] in ("failed", "error")]
+            live.event("fail" if failed or c.get("collection_error") else "pass",
+                       "Tests for %s (%s): %s" % (label, ROUTE_NAME.get(route, route),
+                                                  ", ".join("%d %s" % (v, k) for k, v in c.items()) or "none ran"),
+                       "\n".join("%s: %s" % (k.split("::")[-1], (t["tests"][k]["message"] or "").split("\n")[0]) for k in failed))
         results[route] = result
+    live.set(current_env=None)
     return results
 
 
@@ -164,6 +196,7 @@ def run_forecast(repo, work, versions, route, modules, dists, deps):
     out = {"route": route, "versions": {}, "matrix": {}}
     for v in versions:
         console.print("  forecast: Python %s" % v)
+        live.set(action="Forecast: trying the original project on Python %s" % v)
         res = verify_tree(repo, "forecast-%s" % v, work, v, [route], modules, dists).get(route, {})
         smoke = res.get("smoke") or {}
         out["versions"][v] = {
@@ -222,6 +255,7 @@ def _current_deps(tree, pkg_map, installed):
 
 def run_organizer(base_tree, base_results, work, python, routes, pkg_map, installed, gemma):
     console.rule("Auto-Organizer (manifests rebuilt from evidence, then tested)")
+    live.set(stage="organize", action="Rebuilding the dependency files from evidence")
     deps, man = _current_deps(base_tree, pkg_map, installed)
     the_plan = organizer.plan(deps)
     notes, note_error = {}, None
@@ -238,6 +272,9 @@ def run_organizer(base_tree, base_results, work, python, routes, pkg_map, instal
     comparison = compare(base_results, cand, [], [])
     v = verdict(comparison, "upgrade", {"errors": []})
     console.print("  organizer verdict: [bold]%s[/bold]" % v)
+    live.event("verdict", "Organizer: %s (%d changes)" % (v, len(the_plan["actions"])))
+    if v not in PASSING:
+        live.issue("warning", "organizer", "Organized files did not verify: %s" % v)
     return {"actions": the_plan["actions"], "log": log, "ai_annotations": notes, "ai_error": note_error,
             "comparison": comparison, "verdict": v, "verification": cand, "diff": migrate.diff_trees(base_tree, tree),
             "applies_on_top_of": "verified migration" if Path(base_tree) != Path(work) / "baseline-src" else "original repository"}
@@ -256,12 +293,16 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
         from .gemma import Gemma
         gemma = Gemma(model=model)
         console.print("[bold]AI:[/bold] %s via Gemini API" % gemma.model)
+        live.set(model=gemma.model)
     else:
         console.print("[yellow]AI disabled (--no-ai): capsules will contain observed evidence only[/yellow]")
 
     console.rule("1. Target")
+    live.set(stage="target", target=target, action="Downloading the repository", detail=target)
     repo, target_info = prepare_target(target, work)
     py_version = env.python_version(python)
+    live.set(commit=target_info["commit"], python=py_version)
+    live.event("info", "Downloaded %s at commit %s" % (target, (target_info["commit"] or "?")[:10]))
     console.print("repo: %s  commit: %s  python: %s" % (target, (target_info["commit"] or "?")[:10], py_version))
 
     console.rule("2. Static scan")
@@ -271,9 +312,23 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
     usage.mark_side_effect_imports(found)
     console.print("%d declared dependencies in %s; %d third-party modules imported"
                   % (len(declared), ", ".join(man["files"]), len(found)))
+    from .util import skipped as _sk
+    py_files = [p for p in Path(repo).rglob("*.py") if not _sk(p.relative_to(repo).parts)]
+    live.set(stage="scan", action="Reading dependency files and scanning the code",
+             scan={"manifests": man["files"], "declared": len(declared), "declarations": len(man["entries"]),
+                   "modules": len(found), "python_files": len(py_files),
+                   "usages": sum(len(v["usages"]) for v in found.values()),
+                   "imports": sum(len(v["imports"]) for v in found.values()),
+                   "commented": len(man["commented_out"]), "parse_errors": len(parse_errors),
+                   "requires_python": man.get("requires_python")})
+    live.event("info", "Scanned %d Python files: %d third-party modules, %d declarations in %s"
+               % (len(py_files), len(found), len(man["entries"]), ", ".join(man["files"])))
+    for e in parse_errors:
+        live.issue("warning", "scan", "Could not parse %s" % e["file"], e["error"])
 
     console.rule("3. Baseline (original dependencies, real install + tests)")
     routes = env.install_routes(repo)
+    live.set(stage="baseline", action="Installing the original project and running its tests")
     baseline = verify_tree(repo, "baseline", work, python, routes, modules=sorted(found), dists=sorted(declared))
     pkg_map, dists_installed = {}, {}
     for r in baseline.values():
@@ -282,6 +337,13 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
     for route, r in baseline.items():
         t = r.get("tests") or {}
         console.print("  %-12s install=%s tests=%s" % (route, "ok" if r["install"]["ok"] else "FAILED", t.get("counts")))
+        fails = {k: v["message"] for k, v in (t.get("tests") or {}).items() if v["outcome"] in ("failed", "error")}
+        live.set(baseline={**live.LIVE.get("baseline", {}), route: {"install_ok": r["install"]["ok"], "counts": t.get("counts"),
+                                                                    "seconds": t.get("seconds"), "failing": list(fails)}})
+        for k, msg in fails.items():
+            live.issue("error", "baseline", "Test fails on the original project: %s (%s)" % (k.split("::")[-1], ROUTE_NAME.get(route, route)), msg)
+        if (t.get("counts") or {}).get("collection_error"):
+            live.issue("error", "baseline", "Test suite crashed before running (%s)" % ROUTE_NAME.get(route, route), t.get("output_tail", "")[-1500:])
 
     # group modules under distributions
     mods_by_dist = {}
@@ -296,8 +358,10 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
     candidates = sorted(set(declared) | set(mods_by_dist))
 
     console.rule("4. Risk assessment (PyPI + evidence)")
+    live.set(stage="risk", action="Scoring every dependency with PyPI data and the evidence")
     deps = []
     for name in candidates:
+        live.set(detail="Checking %s on PyPI" % name)
         modules = sorted(set(mods_by_dist.get(name, [])) or {name.replace("-", "_")})
         merged = {"imports": [], "usages": []}
         for m in modules:
@@ -328,11 +392,25 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
         })
     deps.sort(key=lambda d: (-d["score"], d["name"]))
     _print_risk_table(deps)
+    for d in deps:
+        live.dep(d["name"], level=d["level"], score=d["score"], indicators=sorted({i["id"] for i in d["indicators"]}),
+                 installed=d.get("installed_version"), latest=d["pypi"].get("latest_version"),
+                 released=(d["pypi"].get("latest_release_date") or "")[:10], usages=len(d["usage"]["usages"]),
+                 status="scored", note="")
+    live.event("info", "Scored %d dependencies: %d high, %d medium" % (len(deps), sum(d["level"] == "high" for d in deps),
+                                                                      sum(d["level"] == "medium" for d in deps)))
 
     forecast_result = None
     if forecast:
         console.rule("Python forecast (original project on other Python versions)")
+        live.set(stage="forecast")
         forecast_result = run_forecast(repo, work, forecast, routes[0], sorted(found), sorted(declared), deps)
+        live.set(forecast={v: {"python": x["python"], "install_ok": x["install_ok"], "tests": x["tests"], "first_error": x["first_error"]}
+                           for v, x in forecast_result["versions"].items()})
+        for v, x in forecast_result["versions"].items():
+            if not x["install_ok"] or (x["tests"] or {}).get("collection_error") or (x["tests"] or {}).get("failed"):
+                live.issue("warning", "forecast", "Original project on Python %s: %s" % (x["python"], "install failed" if not x["install_ok"]
+                           else "tests crash" if (x["tests"] or {}).get("collection_error") else "%d failing" % x["tests"]["failed"]), x["first_error"])
 
     selected = [d for d in deps if d["score"] >= min_score]
     if only:
@@ -340,8 +418,12 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
         selected = [d for d in deps if d["name"] in wanted]
     selected = selected[:max_deps]
     console.print("Selected for exit planning: %s" % ", ".join(d["name"] for d in selected))
+    for d in selected:
+        live.dep(d["name"], status="queued", selected=True)
+    live.event("info", "Planning exits for %d packages: %s" % (len(selected), ", ".join(d["name"] for d in selected)))
 
     console.rule("5. Migration planning + verification")
+    live.set(stage="migrate")
     all_declared = set(declared)
     for dep in selected:
         console.print("[bold cyan]>> %s[/bold cyan] (risk %s, score %d)" % (dep["name"], dep["level"], dep["score"]))
@@ -349,7 +431,10 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
         dep["ai"] = {"enabled": bool(gemma)}
         if not gemma:
             dep["verdict"] = "not_attempted"
+            live.dep(dep["name"], status="skipped", note="AI off")
             continue
+        live.set(action="Gemma 4 is planning an exit for %s" % dep["name"], detail="Sending risk evidence and %d usage locations" % len(dep["usage"]["usages"]))
+        live.dep(dep["name"], status="planning", note="asking Gemma 4")
         context = build_context(dep, repo, py_version, all_declared)
         try:
             proposal = _normalised(gemma.propose(context))
@@ -357,10 +442,19 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
             dep["ai"]["error"] = str(exc)
             dep["verdict"] = "ai_failed"
             console.print("    [red]Gemma failed: %s[/red]" % exc)
+            live.dep(dep["name"], status="done", verdict="ai_failed", note="Gemma call failed")
+            live.event("error", "Gemma failed for %s" % dep["name"], exc)
+            live.issue("error", dep["name"], "Gemma 4 call failed", exc)
+            live.set(counters={**live.LIVE["counters"], "ai_calls": len(gemma.calls)})
             continue
+        live.set(counters={**live.LIVE["counters"], "ai_calls": len(gemma.calls)})
+        live.event("ai", "Gemma 4 proposed for %s: %s %s" % (dep["name"], proposal["action"],
+                   proposal["replacement"].get("requirement") or proposal["replacement"].get("package") or ""),
+                   proposal.get("assessment", ""))
         problems = migrate.validate(repo, proposal)
         if problems:
             console.print("    [yellow]proposal invalid (%d problems), asking Gemma to repair[/yellow]" % len(problems))
+            live.event("warn", "%s: Gemma's edit did not match the code, asking it to repair" % dep["name"], "\n".join(problems))
             dep["ai"]["validation_problems"] = problems
             try:
                 proposal = _normalised(gemma.repair(context, proposal, {"validation_errors": problems}))
@@ -369,9 +463,13 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
         for n in range(1, attempts + 1):
             action = proposal["action"]
             console.print("    attempt %d: %s -> %s" % (n, action, proposal["replacement"].get("package") or "-"))
+            live.dep(dep["name"], status="testing", attempt=n, plan="%s %s" % (action, proposal["replacement"].get("requirement") or proposal["replacement"].get("package") or ""),
+                     note="attempt %d: installing and testing" % n)
+            live.set(action="Proving the %s exit (attempt %d): install and test" % (dep["name"], n))
             if action == "keep":
                 dep["attempts"].append({"n": n, "proposal": proposal, "skipped": "AI recommended keeping the dependency"})
                 dep["verdict"] = "kept"
+                live.dep(dep["name"], status="done", verdict="kept", note="Gemma 4 recommends keeping it for now")
                 break
             tree = migrate.copy_tree(repo, work / "candidates" / ("%s-%d" % (dep["name"], n)))
             applied = migrate.apply(tree, proposal)
@@ -392,6 +490,17 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
             })
             dep["verdict"] = v
             console.print("    verdict: [bold]%s[/bold]" % v)
+            r0 = next(iter(comparison["routes"].values()), {})
+            live.dep(dep["name"], status="done" if (v in PASSING or n == attempts) else "repairing", verdict=v,
+                     before=r0.get("tests_before"), after=r0.get("tests_after"),
+                     note="fixed %d, broke %d" % (len(r0.get("fixed", [])), len(r0.get("regressed", []))))
+            live.event("verdict" if v in PASSING else "fail", "%s attempt %d: %s" % (dep["name"], n, v),
+                       "\n".join(applied["errors"] + comparison["residual_references"]
+                                 + ["broke: " + t for r in comparison["routes"].values() for t in r["regressed"]]))
+            if v not in PASSING:
+                live.issue("warning" if n < attempts else "error", dep["name"], "Attempt %d: %s" % (n, v),
+                           "\n".join(applied["errors"] + comparison["residual_references"]
+                                     + ["%s: %s" % (t, m.split("\n")[0]) for r in comparison["routes"].values() for t, m in r["regression_details"].items()]))
             if v in PASSING or n == attempts:
                 break
             problems = {"verdict": v, "apply_errors": applied["errors"], "comparison": comparison,
@@ -400,7 +509,10 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
                                                 for r, c in cand.items()}}
             try:
                 console.print("    [yellow]asking Gemma to repair using the observed failures[/yellow]")
+                live.set(action="Gemma 4 is repairing the %s plan using the real failures" % dep["name"])
+                live.dep(dep["name"], note="Gemma repairing from real failures")
                 proposal = _normalised(gemma.repair(context, proposal, problems))
+                live.event("ai", "Gemma 4 repaired the %s plan: %s" % (dep["name"], proposal["action"]))
             except Exception as exc:
                 dep["ai"]["error"] = str(exc)
                 break
@@ -412,14 +524,17 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
                         "replacement_imports": last["replacement_imports"],
                         "risk_indicators": [i["detail"] for i in dep["indicators"]]}
             try:
+                live.set(action="Gemma 4 is reviewing the %s results" % dep["name"])
                 dep["ai"]["review"] = gemma.review(evidence)
             except Exception as exc:
                 dep["ai"]["review_error"] = str(exc)
+            live.set(counters={**live.LIVE["counters"], "ai_calls": len(gemma.calls)})
 
     combined = None
     passing = [d for d in selected if d.get("verdict") in PASSING]
     if len(passing) > 1:
         console.rule("6. Combined migration (all verified exits applied together)")
+        live.set(stage="combined", action="Applying every verified exit together and testing again")
         tree = migrate.copy_tree(repo, work / "candidates" / "combined")
         logs = []
         for d in passing:
@@ -430,6 +545,9 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
                     "comparison": comparison, "diff": migrate.diff_trees(repo, tree),
                     "verdict": verdict(comparison, "upgrade", {"errors": [e for l in logs for e in l["errors"]]})}
         console.print("combined verdict: [bold]%s[/bold]" % combined["verdict"])
+        live.event("verdict" if combined["verdict"] in PASSING else "fail", "All verified exits together: %s" % combined["verdict"])
+        if combined["verdict"] not in PASSING:
+            live.issue("error", "combined", "Verified exits clash when applied together: %s" % combined["verdict"])
 
     organized = None
     if organize:
@@ -448,6 +566,7 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
         organized = run_organizer(base_tree, base_results, work, python, routes, all_pkg_map, all_installed, gemma)
 
     console.rule("7. Writing Dependency Exit Capsules")
+    live.set(stage="capsules", action="Writing the Dependency Exit Capsules")
     run_info = {
         "tool": "depexit %s" % __version__,
         "started": started.isoformat(timespec="seconds"),
@@ -460,6 +579,10 @@ def analyze(target, out_dir="capsule", python="3.12", use_ai=True, only=None, ma
         "manifests": man,
         "parse_errors": parse_errors,
     }
+    snap = live.snapshot()
+    run_info["issues"] = snap.get("issues", [])
+    run_info["events"] = snap.get("events", [])
+    run_info["scan"] = snap.get("scan", {})
     paths = capsule.write_all(out_dir, run_info, baseline, deps, selected, combined, gemma.calls if gemma else [],
                               organized=organized, forecast=forecast_result)
     console.print("Capsules written to [bold]%s[/bold] (open %s)" % (out_dir, paths["index"]))

@@ -48,8 +48,9 @@ def _has_key():
 
 
 def _run(params):
-    from . import pipeline
+    from . import live, pipeline
 
+    live.reset()
     try:
         pipeline.set_console(Console(file=_LogWriter(STATE), width=110, color_system=None, force_terminal=False))
         out = RUNS / datetime.now().strftime("%Y%m%d-%H%M%S") / "capsule"
@@ -63,6 +64,7 @@ def _run(params):
                          forecast=forecast or None, organize=bool(params.get("organize", True)))
     except SystemExit as exc:
         STATE["error"] = str(exc)
+        live.issue("error", "run", "The run stopped", str(exc))
     except Exception as exc:  # shown in the UI instead of killing the server
         msg = str(exc)
         if "GEMINI_API_KEY" in msg:
@@ -160,7 +162,8 @@ class Handler(BaseHTTPRequestHandler):
                 "log": STATE["log"][since:], "n": len(STATE["log"]), "out": STATE["out"],
                 "started": STATE["started"], "finished": STATE["finished"], "now": time.time(),
                 "params": STATE["params"], "has_key": _has_key(),
-                "model": os.environ.get("GEMMA_MODEL", "gemma-4-26b-a4b-it")})
+                "model": os.environ.get("GEMMA_MODEL", "gemma-4-26b-a4b-it"),
+                "live": __import__("depexit.live", fromlist=["snapshot"]).snapshot()})
         if url.path == "/api/result":
             return self._send(200, _load_result(STATE["out"]))
         if url.path == "/api/runs":

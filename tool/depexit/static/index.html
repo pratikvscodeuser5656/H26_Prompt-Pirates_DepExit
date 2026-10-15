@@ -269,6 +269,40 @@ pre.out{background:var(--wash);border-radius:8px;padding:12px 14px;font:12.5px/1
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:all .3s var(--ease);z-index:50;max-width:90vw}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
+/* live run */
+.lcount{display:grid;grid-template-columns:repeat(7,1fr);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--rule);margin:20px 0 18px}
+.lcount div{padding:10px 12px 10px 0;border-right:1px solid var(--rule)} .lcount div+div{padding-left:12px} .lcount div:last-child{border-right:0}
+.lcount b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+.lcount span{font-size:11.5px;color:var(--graphite)}
+.lgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px}
+.lcard{border:1px solid var(--rule);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.lcard h4{margin:0 0 10px;font-size:14px;display:flex;justify-content:space-between;gap:8px}
+#lenv{border-color:var(--ink)} #lenv:empty{display:none}
+.envnow{display:flex;gap:12px;align-items:center}
+.spin{width:16px;height:16px;border:2px solid var(--rule);border-top-color:var(--ink);border-radius:50%;animation:sp .8s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+.kv2{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;color:var(--ink)} .kv2 dt{color:var(--graphite)} .kv2 dd{margin:0}
+.dtab td{padding:7px 6px;font-size:12.5px} .dtab th{padding:6px;font-size:11.5px}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
+.st i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--ink)}
+.st.queued{color:var(--mist)} .st.queued i{border-color:var(--rule)}
+.st.planning i,.st.testing i,.st.repairing i{border-color:var(--rule);border-top-color:var(--ink);animation:sp .8s linear infinite}
+.st.done.ok i{background:var(--ink)} .st.done.bad i{border-radius:2px;background:repeating-linear-gradient(-45deg,var(--ink) 0 2px,#fff 2px 4px)}
+.st.scored{color:var(--graphite)}
+.feed{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto}
+.feed li{display:grid;grid-template-columns:56px 14px 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12.5px;align-items:start}
+.feed time{font-family:var(--mono);font-size:11px;color:var(--mist);padding-top:2px}
+.feed .ic{width:10px;height:10px;margin-top:4px;border:1.5px solid var(--ink);border-radius:50%}
+.feed .pass .ic,.feed .verdict .ic{background:var(--ink)}
+.feed .fail .ic,.feed .error .ic{border-radius:2px;background:repeating-linear-gradient(-45deg,var(--ink) 0 2px,#fff 2px 4px)}
+.feed .ai .ic{border-style:dashed} .feed .warn .ic{border-style:dotted} .feed .install .ic{border-color:var(--mist)}
+.feed details summary{cursor:pointer;list-style:none} .feed details summary::-webkit-details-marker{display:none}
+.feed details summary::after{content:" +";color:var(--mist)} .feed details[open] summary::after{content:" −"}
+.feed pre{white-space:pre-wrap;font:11px/1.45 var(--mono);color:var(--graphite);background:var(--wash);padding:8px;border-radius:6px;margin:6px 0 0;max-height:180px;overflow:auto}
+.iss{border-left:3px solid var(--ink);padding:6px 0 6px 10px;margin-bottom:8px}
+.iss.warning{border-left-style:dashed} .iss.info{border-left-color:var(--rule)}
+.iss b{font-size:12.5px;display:block} .iss span{font-size:11.5px;color:var(--mist)}
+.iss pre{white-space:pre-wrap;font:11px/1.45 var(--mono);color:var(--graphite);background:var(--wash);padding:8px;border-radius:6px;margin:6px 0 0;max-height:200px;overflow:auto}
 /* checks */
 .oc{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;white-space:nowrap}
 .oc i{width:10px;height:10px;border:1.5px solid var(--ink);border-radius:50%}
@@ -290,7 +324,7 @@ details.more pre{background:var(--wash);border-radius:8px;padding:10px 12px;font
 .pkgs{columns:3;column-gap:28px;list-style:none;padding:0;margin:0}
 .pkgs li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;break-inside:avoid}
 @media (max-width:1100px){.cols,.capwrap{grid-template-columns:1fr}.caplist{position:static;display:flex;flex-wrap:wrap;gap:6px}.caplist button{width:auto}.proof{grid-template-columns:1fr}}
-@media (max-width:860px){.shell{grid-template-columns:1fr}.rail{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule)}.main{padding:24px 18px}.flow{grid-template-columns:1fr 1fr}.minis{grid-template-columns:1fr}.minis>div{border-right:0;padding-left:0 !important}.exits li{grid-template-columns:1fr}.top .tagline,.legend{display:none}.files{columns:1}.routes{grid-template-columns:1fr}.totals{grid-template-columns:1fr 1fr}.pkgs{columns:1}.track,.tracklabels{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:860px){.shell{grid-template-columns:1fr}.rail{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule)}.main{padding:24px 18px}.flow{grid-template-columns:1fr 1fr}.minis{grid-template-columns:1fr}.minis>div{border-right:0;padding-left:0 !important}.exits li{grid-template-columns:1fr}.top .tagline,.legend{display:none}.files{columns:1}.lgrid{grid-template-columns:1fr}.lcount{grid-template-columns:repeat(2,1fr)}.routes{grid-template-columns:1fr}.totals{grid-template-columns:1fr 1fr}.pkgs{columns:1}.track,.tracklabels{grid-template-columns:repeat(3,1fr)}}
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
 </head>
@@ -398,7 +432,20 @@ details.more pre{background:var(--wash);border-radius:8px;padding:10px 12px;font
       <div class="tracklabels" id="tracklabels"></div>
       <div class="now" id="now">Starting…<small></small></div>
       <div id="runerr" class="errbox hidden" role="alert"></div>
-      <details class="logbox" id="logbox" open><summary>Live log</summary><pre class="log" id="log"></pre></details>
+      <div class="lcount" id="lcount"></div>
+      <div class="lgrid">
+        <div>
+          <div class="lcard" id="lenv"></div>
+          <div class="lcard"><h4>Scan</h4><div id="lscan" class="small muted">Waiting for the scan…</div></div>
+          <div class="lcard"><h4>Baseline: original project</h4><div id="lbase" class="small muted">Not tested yet.</div></div>
+          <div class="lcard"><h4>Issues found so far <span id="lissuen" class="faint"></span></h4><div id="lissues" class="small muted">None yet.</div></div>
+        </div>
+        <div>
+          <div class="lcard"><h4>Dependencies</h4><div id="ldeps" class="small muted">Appears after scoring.</div></div>
+          <div class="lcard"><h4>Activity</h4><ol class="feed" id="lfeed"></ol></div>
+        </div>
+      </div>
+      <details class="logbox" id="logbox"><summary>Raw log</summary><pre class="log" id="log"></pre></details>
     </section>
 
     <!-- results -->
@@ -518,6 +565,69 @@ function tick(){
   const s = Math.max(0, Math.round(Date.now()/1000 - startedAt));
   $("#elapsed").textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 }
+let openFeed = new Set();
+function hms(t){ const d=new Date(t*1000); return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}); }
+function stChip(d){
+  const v = d.verdict, cls = d.status === "done" ? (v && v.startsWith("verified") ? "done ok" : "done bad") : d.status;
+  const label = {queued:"Queued", planning:"Gemma planning", testing:"Installing + testing", repairing:"Gemma repairing", scored:"Scored", skipped:"Skipped"}[d.status]
+    || (VNAME[v] || v || "Done");
+  return `<span class="st ${cls}"><i></i>${esc(label)}</span>`;
+}
+function renderLive(L, now){
+  if(!L) return;
+  const C = L.counters || {};
+  $("#lcount").innerHTML = [[C.environments||0,"environments built"],[`${C.installs_ok||0}/${(C.installs_ok||0)+(C.installs_failed||0)}`,"installs succeeded"],
+    [C.test_cases||0,"test cases run"],[C.passed||0,"passed"],[C.failed||0,"failed"],[C.ai_calls||0,"Gemma 4 calls"],[C.warnings||0,"test warnings"]]
+    .map(([b,s]) => `<div><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join("");
+  const E = L.current_env;
+  $("#lenv").innerHTML = E ? `<div class="envnow"><span class="spin"></span><div><b>${E.phase === "testing" ? "Running tests" : "Installing"}: ${esc(E.label)}</b>
+     <div class="small muted">${esc(routeName(E.route))}, Python ${esc(E.python)}, ${esc(secs(Math.max(0, now - E.since)))} so far</div></div></div>` : "";
+  const S = L.scan || {};
+  if(S.manifests) $("#lscan").innerHTML = `<dl class="kv2">
+     <dt>Repository</dt><dd class="code">${esc(shortTarget(L.target))} @ ${esc((L.commit||"").slice(0,10))}</dd>
+     <dt>Python</dt><dd>${esc(L.python||"")}${S.requires_python ? ` <span class="muted">(project needs ${esc(S.requires_python)})</span>` : ""}</dd>
+     <dt>Dependency files</dt><dd class="code">${esc(S.manifests.join(", "))}</dd>
+     <dt>Declarations</dt><dd>${S.declarations} lines, ${S.declared} distinct packages${S.commented ? `, ${S.commented} commented out` : ""}</dd>
+     <dt>Code scanned</dt><dd>${S.python_files} Python files${S.parse_errors ? `, ${S.parse_errors} unreadable` : ""}</dd>
+     <dt>Third-party use</dt><dd>${S.modules} modules, ${S.imports} imports, ${S.usages} usage sites</dd>
+     <dt>Gemma model</dt><dd class="code">${esc(L.model || "off")}</dd></dl>`;
+  const B = L.baseline || {};
+  if(Object.keys(B).length) $("#lbase").innerHTML = Object.entries(B).map(([r,b]) => `<div style="margin-bottom:8px">
+     <b>${esc(routeName(r))}</b>: install ${b.install_ok ? "succeeded" : "<b>failed</b>"}, ${esc(counts(b.counts))}${b.seconds ? `, tests ${esc(secs(b.seconds))}` : ""}
+     ${b.failing.length ? `<div class="muted">Failing: ${b.failing.map(f => `<code>${esc(f.split("::").pop())}</code>`).join(", ")}</div>` : ""}</div>`).join("");
+  const D = L.deps || [];
+  if(D.length){
+    const rows = [...D].sort((a,b) => (b.selected?1:0)-(a.selected?1:0) || (b.score||0)-(a.score||0));
+    $("#ldeps").innerHTML = `<table class="dtab"><thead><tr><th>Package</th><th>Risk</th><th>Version</th><th>Status</th><th>Detail</th></tr></thead><tbody>
+      ${rows.map(d => `<tr><td class="name code">${esc(d.name)}</td><td>${level(d.level||"none")}</td>
+        <td class="code small">${esc(d.installed||"–")}${d.latest && d.latest !== d.installed ? ` <span class="faint">→ ${esc(d.latest)}</span>` : ""}</td>
+        <td>${stChip(d)}</td>
+        <td class="small">${d.plan ? `<code>${esc(d.plan)}</code><br>` : ""}${d.before ? `${esc(counts(d.before))} → <b>${esc(counts(d.after))}</b><br>` : ""}<span class="muted">${esc(d.note || (d.indicators||[]).join(", ").replace(/_/g," "))}</span></td></tr>`).join("")}
+      </tbody></table>`;
+  }
+  const I = L.issues || [];
+  $("#lissuen").textContent = I.length ? `${I.length}` : "";
+  if(I.length) $("#lissues").innerHTML = I.slice().reverse().map(i => `<div class="iss ${esc(i.severity)}"><b>${esc(i.title)}</b><span>${esc(i.stage)}, ${hms(i.t)}</span>
+     ${i.detail ? `<details><summary class="small">Details</summary><pre>${esc(i.detail)}</pre></details>` : ""}</div>`).join("");
+  const F = (L.events || []).slice().reverse();
+  $("#lfeed").innerHTML = F.map((e, k) => { const id = e.t + e.text;
+    return `<li class="${esc(e.kind)}"><time>${hms(e.t)}</time><span class="ic"></span><div>${e.detail ? `<details data-id="${esc(id)}" ${openFeed.has(id)?"open":""}><summary>${esc(e.text)}</summary><pre>${esc(e.detail)}</pre></details>` : esc(e.text)}</div></li>`; }).join("")
+    || `<li class="faint">Waiting…</li>`;
+  $$("#lfeed details").forEach(d => d.ontoggle = () => d.open ? openFeed.add(d.dataset.id) : openFeed.delete(d.dataset.id));
+  if(L.action) curLine = L.detail || curLine;
+  const idx = {target:0, scan:1, baseline:2, risk:3, forecast:4, migrate:5, combined:6, organize:7, capsules:8}[L.stage];
+  if(idx !== undefined && idx > stage){ stage = idx; drawTrack(); }
+}
+function issuesBlock(I, empty){
+  if(!I || !I.length) return `<p class="muted small">${esc(empty)}</p>`;
+  const order = {error:0, warning:1, info:2};
+  const sorted = I.slice().sort((a,b) => (order[a.severity]-order[b.severity]) || a.t - b.t);
+  const n = k => I.filter(i => i.severity === k).length;
+  return `<p class="small" style="margin:0 0 10px"><b>${n("error")}</b> errors, <b>${n("warning")}</b> warnings. Every item was observed during the run.</p>
+    ${sorted.map(i => `<div class="iss ${esc(i.severity)}"><b>${esc(i.title)}</b><span>${esc(i.severity)}, ${esc(i.stage)}, ${hms(i.t)}</span>
+    ${i.detail ? `<details><summary class="small">Show the evidence</summary><pre>${esc(i.detail)}</pre></details>` : ""}</div>`).join("")}`;
+}
+
 async function poll(){
   clearTimeout(pollT);
   const r = await api("/api/state?since="+since); const s = r.data;
@@ -533,6 +643,8 @@ async function poll(){
     }
     since = s.n; log.scrollTop = log.scrollHeight; drawTrack();
   }
+  renderLive(s.live, s.now);
+  if(s.live?.action && s.running) $("#now").innerHTML = `${esc(s.live.action)}<small>${esc(s.live.detail || curLine)}</small>`;
   if(s.running){ $("#runtitle").textContent = "Analysing " + shortTarget(s.params?.target); pollT = setTimeout(poll, 900); return; }
   clearInterval(tickT);
   $("#go").disabled = false; $("#go").textContent = "Run analysis";
@@ -663,6 +775,9 @@ function vOverview(){
     <h3 class="sec">What DepExit did</h3>
     <p class="sub">Each row is one risky package. Gemma suggested the plan; the verdict comes only from installing it and running the tests.</p>
     ${rows ? `<ul class="exits">${rows}</ul>` : `<p class="muted">No package met the risk threshold for an exit plan.</p>`}
+    <h3 class="sec">Problems found during the run</h3>
+    <p class="sub">Errors and warnings DepExit hit while scanning, installing and testing: failing tests on the original project, crashes on future Python versions, fixes that did not verify.</p>
+    ${issuesBlock(DATA.run.issues, DATA.run.issues ? "No problems were found during this run." : "This run was made before issue tracking was added.")}
     <div class="minis">
       <div><b>Python forecast</b><p>${esc(fcLine)}</p>${fc?`<button class="linkbtn" data-go="forecast">See every version</button>`:""}</div>
       <div><b>Auto-Organizer</b><p>${esc(orgLine)}</p>${org?`<button class="linkbtn" data-go="organizer">See the cleaned files</button>`:""}</div>
@@ -836,6 +951,9 @@ function vChecks(){
         <td class="num small">${t.install_seconds===null ? "–" : esc(secs((t.install_seconds||0)+(t.test_seconds||0)))}</td>
         <td>${t.verdict ? verdict(t.verdict) : ""}</td></tr>`).join("")}
     </tbody></table>
+
+    ${(DATA.run.events||[]).length ? `<h3 class="sec">Activity timeline</h3>
+    <ol class="feed" style="max-height:none">${DATA.run.events.map(e => `<li class="${esc(e.kind)}"><time>${hms(e.t)}</time><span class="ic"></span><div>${e.detail ? `<details><summary>${esc(e.text)}</summary><pre>${esc(e.detail)}</pre></details>` : esc(e.text)}</div></li>`).join("")}</ol>` : ""}
 
     <h3 class="sec">Package versions installed in the baseline</h3>
     <ul class="pkgs">${Object.entries(C.installed_versions).map(([n,v]) => `<li><span class="code">${esc(n)}</span><span class="code muted">${esc(v)}</span></li>`).join("")}</ul>`;
