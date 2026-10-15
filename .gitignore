@@ -7,3 +7,12 @@ dist/
 .venv/
 venv/
 status.html
+
+# DepExit
+.env
+.depexit-work/
+tool/.venv/
+tool/.depexit-work/
+*.egg-info/
+capsule/
+depexit-runs/
